@@ -15,14 +15,18 @@
  */
 package org.gwtproject.i18n.client;
 
+import java.util.Map;
 import org.gwtproject.i18n.client.LocalizableResource.Generate;
+import org.gwtproject.i18n.shared.Localizable;
 
 /**
  * Interface to represent the contents of resourcePattern bundle
  * org/gwtproject/i18n/client/TestConstants.properties.
  */
 @Generate(format = "org.gwtproject.i18n.server.PropertyCatalogFactory")
-public interface TestConstants extends org.gwtproject.i18n.client.Constants {
+@Localizable.I18nLocaleSuffuxes({"default", "en"})
+@Localizable.IsLocalizable
+public interface TestConstants extends Constants {
 
   boolean booleanFalse();
 
@@ -73,37 +77,37 @@ public interface TestConstants extends org.gwtproject.i18n.client.Constants {
 
   int intZero();
 
-  //    Map<String, String> mapABCD();
-  //
-  //    Map<String, String> mapBACD();
-  //
-  //    Map<String, String> mapBBB();
-  //
-  //    // raw type test
-  //    @SuppressWarnings("unchecked")
-  //    Map mapDCBA();
-  //
-  //    Map<String, String> mapEmpty();
-  //
-  //    // Map<String, String> mapWithMissingKey();
-  //
-  //    Map<String, String> mapXYZ();
-  //
-  //    String[] stringArrayABCDEFG();
-  //
-  //    String[] stringArraySizeOneEmptyString();
-  //
-  //    String[] stringArraySizeOneWithBackslashX();
-  //
-  //    String[] stringArraySizeOneX();
-  //
-  //    String[] stringArraySizeThreeAllEmpty();
-  //
-  //    String[] stringArraySizeThreeWithDoubleBackslash();
-  //
-  //    String[] stringArraySizeTwoBothEmpty();
-  //
-  //    String[] stringArraySizeTwoWithEscapedComma();
+  Map<String, String> mapABCD();
+
+  Map<String, String> mapBACD();
+
+  Map<String, String> mapBBB();
+
+  // raw type test
+  @SuppressWarnings("unchecked")
+  Map mapDCBA();
+
+  Map<String, String> mapEmpty();
+
+  //     Map<String, String> mapWithMissingKey();
+
+  Map<String, String> mapXYZ();
+
+  String[] stringArrayABCDEFG();
+
+  String[] stringArraySizeOneEmptyString();
+
+  String[] stringArraySizeOneWithBackslashX();
+
+  String[] stringArraySizeOneX();
+
+  String[] stringArraySizeThreeAllEmpty();
+
+  String[] stringArraySizeThreeWithDoubleBackslash();
+
+  String[] stringArraySizeTwoBothEmpty();
+
+  String[] stringArraySizeTwoWithEscapedComma();
 
   String stringDoesNotTrimTrailingThreeSpaces();
 
