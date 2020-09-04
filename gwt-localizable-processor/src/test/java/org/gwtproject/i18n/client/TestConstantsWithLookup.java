@@ -18,6 +18,6 @@ package org.gwtproject.i18n.client;
 import org.gwtproject.i18n.shared.Localizable;
 
 @LocalizableResource.Generate(format = "org.gwtproject.i18n.server.PropertyCatalogFactory")
-@Localizable.I18nLocaleSuffuxes({"default", "en"})
+@Localizable.I18nLocaleSuffixes({"default", "en"})
 @Localizable.IsLocalizable
 public interface TestConstantsWithLookup extends TestConstants, ConstantsWithLookup {}

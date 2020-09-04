@@ -66,7 +66,7 @@ public class CustomDateTimeFormatProcessingStep extends AbstractProcessingStep {
       try {
         generateCustomDateTimeFormats((TypeElement) element);
       } catch (IOException e) {
-        ExceptionUtil.messageStackTrace(messager, e);
+        ExceptionUtil.messageStackTrace(messager, e, element);
       }
     }
 
@@ -140,7 +140,7 @@ public class CustomDateTimeFormatProcessingStep extends AbstractProcessingStep {
           try {
             driverFile.writeTo(filer);
           } catch (IOException e) {
-            ExceptionUtil.messageStackTrace(messager, e);
+            ExceptionUtil.messageStackTrace(messager, e, element);
           }
         });
   }

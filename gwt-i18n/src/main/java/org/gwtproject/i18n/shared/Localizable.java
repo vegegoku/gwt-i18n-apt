@@ -95,17 +95,22 @@ import java.lang.annotation.*;
  * @see org.gwtproject.i18n.client.Messages
  * @see org.gwtproject.i18n.client.Dictionary
  */
-@Localizable.I18nLocaleSuffuxes({"default", "en", "es", "fr", "de"}) // TODO real list
+@Localizable.I18nLocaleSuffixes({"default", "en", "es", "fr", "de"}) // TODO real list
 public interface Localizable {
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.TYPE)
   @Documented
   @interface IsLocalizable {}
 
+  /**
+   * This annotation can be used with an interface that extends inherently from {@link Localizable} to list all locales for which we will generate constants/messages classes.
+   * the processor will look for this annotation using a breadth-first search, the fallback will be using the list of locale defined in the {@link Localizable}
+   * e.g @Localizable.I18nLocaleSuffixes({"default", "en", "en_US", "es", "fr", "de"})
+   */
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.TYPE)
   @Documented
-  @interface I18nLocaleSuffuxes {
+  @interface I18nLocaleSuffixes {
     String[] value();
   }
 

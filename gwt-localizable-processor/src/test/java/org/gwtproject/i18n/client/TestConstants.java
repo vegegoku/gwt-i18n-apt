@@ -24,7 +24,7 @@ import org.gwtproject.i18n.shared.Localizable;
  * org/gwtproject/i18n/client/TestConstants.properties.
  */
 @Generate(format = "org.gwtproject.i18n.server.PropertyCatalogFactory")
-@Localizable.I18nLocaleSuffuxes({"default", "en"})
+@Localizable.I18nLocaleSuffixes({"default", "en"})
 @Localizable.IsLocalizable
 public interface TestConstants extends Constants {
 

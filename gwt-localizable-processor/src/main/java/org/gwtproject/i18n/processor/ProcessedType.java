@@ -23,26 +23,28 @@ import javax.lang.model.util.Elements;
 
 public class ProcessedType {
 
-  private final TypeElement enclosingType;
-  private final List<ExecutableElement> methods = new ArrayList<>();
-  private final Elements elements;
+    private final TypeElement enclosingType;
+    private final List<ConstantMethod> methods = new ArrayList<>();
+    private final Elements elements;
 
-  public ProcessedType(Elements elements, TypeElement enclosingType) {
-    this.elements = elements;
-    this.enclosingType = enclosingType;
-  }
-
-  public void addMethod(ExecutableElement method) {
-    methods.add(method);
-  }
-
-  public boolean overrides(ExecutableElement targetMethod) {
-    for (ExecutableElement method : methods) {
-      if (elements.overrides(method, targetMethod, enclosingType)) {
-        return true;
-      }
+    public ProcessedType(Elements elements, TypeElement enclosingType) {
+        this.elements = elements;
+        this.enclosingType = enclosingType;
     }
 
-    return false;
-  }
+    public void addMethod(ConstantMethod method) {
+        if (!methods.contains(method)) {
+            methods.add(method);
+        }
+    }
+
+    public boolean overrides(ExecutableElement targetMethod) {
+        for (ConstantMethod constantMethod : methods) {
+            if (elements.overrides(constantMethod.getMethod(), targetMethod, enclosingType)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

@@ -16,12 +16,9 @@
 package org.gwtproject.i18n.processor;
 
 import java.net.URL;
-import javax.lang.model.element.ExecutableElement;
-import org.gwtproject.ext.UnableToCompleteException;
-import org.gwtproject.i18n.processor.logging.logger.TreeLogger;
 
 /**
- * An abstraction for finding and retrieving {@link Resource}s by abstract path name. Intuitively,
+ * An abstraction for finding and retrieving resource(s) by abstract path name. Intuitively,
  * it works like a jar in that each URL is uniquely located somewhere in an abstract namespace. The
  * abstract names must be constructed from a series of zero or more valid Java identifiers followed
  * by the '/' character and finally ending in a valid filename, for example, <code>
@@ -38,7 +35,4 @@ public interface ResourceOracle {
   URL findResource(CharSequence pkg, CharSequence relativeName);
 
   URL findResource(CharSequence fullPath);
-
-  URL[] findResources(TreeLogger logger, ExecutableElement method, String[] defaultSuffixes)
-      throws UnableToCompleteException;
 }

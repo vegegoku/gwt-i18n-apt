@@ -13,70 +13,74 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// package org.gwtproject.i18n.client;
-//
-// import com.google.gwt.junit.client.GWTTestCase;
-// import org.gwtproject.i18n.client.LocalizableResource.DefaultLocale;
-// import org.gwtproject.i18n.shared.Localizable;
-//
-/// ** Tests annotations not covered elsewhere. */
-// public class AnnotationsTest extends GWTTestCase {
-//
-//  /** First grandparent for test. */
-//  public interface GP1 extends TestConstants {
-//    @Constants.DefaultStringValue("gp1 annot")
-//    String gp1();
-//
-//    @Constants.DefaultStringValue("gp1 shared annot")
-//    String shared();
-//  }
-//
-//  /** Second grandparent for test. */
-//  public interface GP2 extends TestConstants {
-//    @Constants.DefaultStringValue("gp2 annot")
-//    String gp2();
-//
-//    @Constants.DefaultStringValue("gp2 shared annot")
-//    String shared();
-//  }
-//
-//  /** Test interface for P1 before P2. */
-//  @Localizable.IsLocalizable
-//  public interface Inherit1 extends P1, P2 {}
-//
-//  /** Test interface for P2 before P1. */
-//  @Localizable.IsLocalizable
-//  public interface Inherit2 extends P2, P1 {
-//    @Constants.DefaultStringValue("def")
-//    String def();
-//  }
-//
-//  /** Used to verify that we can explicitly localize messages in annotations. */
-//  @DefaultLocale("en")
-//  public interface Inherit2_en extends Inherit2 {
-//    @Override
-//    @Constants.DefaultStringValue("en def")
-//    String def();
-//  }
-//
-//  /** First parent interface for test. */
-//  public interface P1 extends TestConstants {
-//    @Constants.DefaultStringValue("p1 annot")
-//    String p1();
-//
-//    @Constants.DefaultStringValue("p1 shared annot")
-//    String shared();
-//  }
-//
-//  /** Second parent interface for test. */
-//  public interface P2 extends GP1, GP2 {
-//    @Constants.DefaultStringValue("p2 annot")
-//    String p2();
-//
-//    @Override
-//    String shared();
-//  }
-//
+ package org.gwtproject.i18n.client;
+
+ import com.google.gwt.junit.client.GWTTestCase;
+ import org.gwtproject.i18n.client.LocalizableResource.DefaultLocale;
+ import org.gwtproject.i18n.shared.Localizable;
+ import org.junit.Before;
+ import org.junit.Test;
+
+ import static org.junit.Assert.assertEquals;
+
+// ** Tests annotations not covered elsewhere. */
+ public class AnnotationsTest {
+
+  /** First grandparent for test. */
+  public interface GP1 extends TestConstants {
+    @Constants.DefaultStringValue("gp1 annot")
+    String gp1();
+
+    @Constants.DefaultStringValue("gp1 shared annot")
+    String shared();
+  }
+
+  /** Second grandparent for test. */
+  public interface GP2 extends TestConstants {
+    @Constants.DefaultStringValue("gp2 annot")
+    String gp2();
+
+    @Constants.DefaultStringValue("gp2 shared annot")
+    String shared();
+  }
+
+  /** Test interface for P1 before P2. */
+  @Localizable.IsLocalizable
+  public interface Inherit1 extends P1, P2 {}
+
+  /** Test interface for P2 before P1. */
+  @Localizable.IsLocalizable
+  public interface Inherit2 extends P2, P1 {
+    @Constants.DefaultStringValue("def")
+    String def();
+  }
+
+  /** Used to verify that we can explicitly localize messages in annotations. */
+  @DefaultLocale("en")
+  public interface Inherit2_en extends Inherit2 {
+    @Override
+    @Constants.DefaultStringValue("en def")
+    String def();
+  }
+
+  /** First parent interface for test. */
+  public interface P1 extends TestConstants {
+    @Constants.DefaultStringValue("p1 annot")
+    String p1();
+
+    @Constants.DefaultStringValue("p1 shared annot")
+    String shared();
+  }
+
+  /** Second parent interface for test. */
+  public interface P2 extends GP1, GP2 {
+    @Constants.DefaultStringValue("p2 annot")
+    String p2();
+
+    @Override
+    String shared();
+  }
+
 //  /** Basic test message. */
 //  public interface Msg1 extends Messages {
 //    @DefaultMessage("Test {0}")
@@ -96,27 +100,33 @@
 //  /** Aggregate messages into one interface. */
 //  @Localizable.IsLocalizable
 //  public interface AllMessages extends Msg1, Msg2 {}
-//
+
 //  @Override
 //  public String getModuleName() {
 //    return null; // "org.gwtproject.i18n.I18NTest_en";
 //  }
-//
-//  public void testInheritance() {
-//    Inherit1 i1 = Inherit1_Factory.create();
-//    assertEquals("p1 annot", i1.p1());
-//    assertEquals("gp2 annot", i1.gp2());
-//    assertEquals("p1 shared annot", i1.shared());
-//    Inherit2 i2 = Inherit2_Factory.create();
-//    assertEquals("p1 annot", i2.p1());
-//    assertEquals("gp2 annot", i2.gp2());
-//    assertEquals("gp1 shared annot", i2.shared());
-//
-//    // TODO(jat): this doesn't work because findDerivedClasses only
-//    // looks for concrete classes, not other interfaces -- commenting
-//    // out for now, revisit later.
-//    // assertEquals("en def", i2.def());
-//  }
+
+    @Before
+    public void setUp() throws Exception {
+        System.setProperty("locale", "en");
+    }
+
+    @Test
+    public void testInheritance() {
+    Inherit1 i1 = AnnotationsTest_Inherit1_Factory.create();
+    assertEquals("p1 annot", i1.p1());
+    assertEquals("gp2 annot", i1.gp2());
+    assertEquals("p1 shared annot", i1.shared());
+    Inherit2 i2 = AnnotationsTest_Inherit2_Factory.create();
+    assertEquals("p1 annot", i2.p1());
+    assertEquals("gp2 annot", i2.gp2());
+    assertEquals("gp1 shared annot", i2.shared());
+
+    // TODO(jat): this doesn't work because findDerivedClasses only
+    // looks for concrete classes, not other interfaces -- commenting
+    // out for now, revisit later.
+    // assertEquals("en def", i2.def());
+  }
 //
 //  public void testIssue2359() {
 //    AllMessages m = AllMessages_Factory.create();
@@ -129,4 +139,4 @@
 //    AllMessages m = AllMessages_Factory.create();
 //    assertEquals("from en_US", m.leastDerived());
 //  }
-// }
+ }
