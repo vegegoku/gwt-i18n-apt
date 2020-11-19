@@ -18,8 +18,8 @@ package org.gwtproject.i18n.processor;
 import java.net.URL;
 
 /**
- * An abstraction for finding and retrieving resource(s) by abstract path name. Intuitively,
- * it works like a jar in that each URL is uniquely located somewhere in an abstract namespace. The
+ * An abstraction for finding and retrieving resource(s) by abstract path name. Intuitively, it
+ * works like a jar in that each URL is uniquely located somewhere in an abstract namespace. The
  * abstract names must be constructed from a series of zero or more valid Java identifiers followed
  * by the '/' character and finally ending in a valid filename, for example, <code>
  * com/google/gwt/blah.txt</code>.

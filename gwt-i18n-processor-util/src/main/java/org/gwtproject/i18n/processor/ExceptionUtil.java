@@ -15,12 +15,12 @@
  */
 package org.gwtproject.i18n.processor;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import javax.annotation.processing.Messager;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.tools.Diagnostic;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 
 public class ExceptionUtil {
 
@@ -39,16 +39,22 @@ public class ExceptionUtil {
    */
   public static void messageStackTrace(Messager messager, Exception e, Element element) {
     messager.printMessage(
-        Diagnostic.Kind.ERROR, "error while generating source file for element" + stackTraceString(e), element);
+        Diagnostic.Kind.ERROR,
+        "error while generating source file for element" + stackTraceString(e),
+        element);
   }
 
   /**
    * @param messager the messager to print the exception stack trace
    * @param e exception to be printed
    */
-  public static void messageStackTrace(Messager messager, Exception e, Element element, AnnotationMirror annotationMirror) {
+  public static void messageStackTrace(
+      Messager messager, Exception e, Element element, AnnotationMirror annotationMirror) {
     messager.printMessage(
-        Diagnostic.Kind.ERROR, "error while generating source file for element and annotation" + stackTraceString(e), element, annotationMirror);
+        Diagnostic.Kind.ERROR,
+        "error while generating source file for element and annotation" + stackTraceString(e),
+        element,
+        annotationMirror);
   }
 
   private static String stackTraceString(Exception e) {
@@ -56,5 +62,4 @@ public class ExceptionUtil {
     e.printStackTrace(new PrintWriter(out));
     return out.getBuffer().toString();
   }
-
 }

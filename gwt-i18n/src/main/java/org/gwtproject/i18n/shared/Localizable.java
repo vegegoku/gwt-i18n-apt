@@ -103,9 +103,11 @@ public interface Localizable {
   @interface IsLocalizable {}
 
   /**
-   * This annotation can be used with an interface that extends inherently from {@link Localizable} to list all locales for which we will generate constants/messages classes.
-   * the processor will look for this annotation using a breadth-first search, the fallback will be using the list of locale defined in the {@link Localizable}
-   * e.g @Localizable.I18nLocaleSuffixes({"default", "en", "en_US", "es", "fr", "de"})
+   * This annotation can be used with an interface that extends inherently from {@link Localizable}
+   * to list all locales for which we will generate constants/messages classes. the processor will
+   * look for this annotation using a breadth-first search, the fallback will be using the list of
+   * locale defined in the {@link Localizable} e.g @Localizable.I18nLocaleSuffixes({"default", "en",
+   * "en_US", "es", "fr", "de"})
    */
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.TYPE)

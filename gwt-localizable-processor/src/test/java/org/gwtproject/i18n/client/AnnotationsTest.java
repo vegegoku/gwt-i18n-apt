@@ -13,18 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package org.gwtproject.i18n.client;
+package org.gwtproject.i18n.client;
 
- import com.google.gwt.junit.client.GWTTestCase;
- import org.gwtproject.i18n.client.LocalizableResource.DefaultLocale;
- import org.gwtproject.i18n.shared.Localizable;
- import org.junit.Before;
- import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
- import static org.junit.Assert.assertEquals;
+import org.gwtproject.i18n.client.LocalizableResource.DefaultLocale;
+import org.gwtproject.i18n.shared.Localizable;
+import org.junit.Before;
+import org.junit.Test;
 
 // ** Tests annotations not covered elsewhere. */
- public class AnnotationsTest {
+public class AnnotationsTest {
 
   /** First grandparent for test. */
   public interface GP1 extends TestConstants {
@@ -81,38 +80,38 @@
     String shared();
   }
 
-//  /** Basic test message. */
-//  public interface Msg1 extends Messages {
-//    @DefaultMessage("Test {0}")
-//    String getTest(String testName);
-//  }
-//
-//  /** Plural form test message. */
-//  public interface Msg2 extends Messages {
-//    @DefaultMessage("You have {0} widgets.")
-//    @PluralText({"one", "You have a widget."})
-//    String getWidgetCount(@PluralCount int count);
-//
-//    @DefaultMessage("from en")
-//    String leastDerived();
-//  }
-//
-//  /** Aggregate messages into one interface. */
-//  @Localizable.IsLocalizable
-//  public interface AllMessages extends Msg1, Msg2 {}
+  //  /** Basic test message. */
+  //  public interface Msg1 extends Messages {
+  //    @DefaultMessage("Test {0}")
+  //    String getTest(String testName);
+  //  }
+  //
+  //  /** Plural form test message. */
+  //  public interface Msg2 extends Messages {
+  //    @DefaultMessage("You have {0} widgets.")
+  //    @PluralText({"one", "You have a widget."})
+  //    String getWidgetCount(@PluralCount int count);
+  //
+  //    @DefaultMessage("from en")
+  //    String leastDerived();
+  //  }
+  //
+  //  /** Aggregate messages into one interface. */
+  //  @Localizable.IsLocalizable
+  //  public interface AllMessages extends Msg1, Msg2 {}
 
-//  @Override
-//  public String getModuleName() {
-//    return null; // "org.gwtproject.i18n.I18NTest_en";
-//  }
+  //  @Override
+  //  public String getModuleName() {
+  //    return null; // "org.gwtproject.i18n.I18NTest_en";
+  //  }
 
-    @Before
-    public void setUp() throws Exception {
-        System.setProperty("locale", "en");
-    }
+  @Before
+  public void setUp() throws Exception {
+    System.setProperty("locale", "en");
+  }
 
-    @Test
-    public void testInheritance() {
+  @Test
+  public void testInheritance() {
     Inherit1 i1 = AnnotationsTest_Inherit1_Factory.create();
     assertEquals("p1 annot", i1.p1());
     assertEquals("gp2 annot", i1.gp2());
@@ -127,16 +126,16 @@
     // out for now, revisit later.
     // assertEquals("en def", i2.def());
   }
-//
-//  public void testIssue2359() {
-//    AllMessages m = AllMessages_Factory.create();
-//    assertEquals("Test foo", m.getTest("foo"));
-//    assertEquals("You have 2 widgets.", m.getWidgetCount(2));
-//    assertEquals("You have a widget.", m.getWidgetCount(1));
-//  }
-//
-//  public void testLeastDerived() {
-//    AllMessages m = AllMessages_Factory.create();
-//    assertEquals("from en_US", m.leastDerived());
-//  }
- }
+  //
+  //  public void testIssue2359() {
+  //    AllMessages m = AllMessages_Factory.create();
+  //    assertEquals("Test foo", m.getTest("foo"));
+  //    assertEquals("You have 2 widgets.", m.getWidgetCount(2));
+  //    assertEquals("You have a widget.", m.getWidgetCount(1));
+  //  }
+  //
+  //  public void testLeastDerived() {
+  //    AllMessages m = AllMessages_Factory.create();
+  //    assertEquals("from en_US", m.leastDerived());
+  //  }
+}
