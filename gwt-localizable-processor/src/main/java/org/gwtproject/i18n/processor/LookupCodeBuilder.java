@@ -75,7 +75,7 @@ public class LookupCodeBuilder {
           methodBuilder.addStatement("return $L", "answer").endControlFlow();
         });
     methodBuilder.addStatement(
-        "throw new $T(\"Cannot find constant '\" +$L + \"'; expecting a method name\", \"org.gwtproject.i18n.client.TestConstantsWithLookup\", $L)",
+        "throw new $T(\"Cannot find constant '\" +$L + \"'; expecting a method name\", \"org.gwtproject.i18n.client.ConstantsWithLookup\", $L)",
         MissingResourceException.class,
         "key",
         "key");
