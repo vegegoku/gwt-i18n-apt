@@ -15,12 +15,6 @@
  */
 package org.gwtproject.i18n.processor;
 
-import static java.util.Objects.nonNull;
-
-import com.squareup.javapoet.TypeName;
-
-import java.util.*;
-import java.util.stream.Collectors;
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
@@ -28,13 +22,13 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.ArrayType;
-import javax.lang.model.type.PrimitiveType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
-
-import org.gwtproject.i18n.client.LocalizableResource;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author Dmitrii Tikhomirov <chani@me.com> Created by treblereel on 10/26/18.

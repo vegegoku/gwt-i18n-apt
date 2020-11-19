@@ -113,11 +113,4 @@ public interface Localizable {
   @interface I18nLocaleSuffixes {
     String[] value();
   }
-
-  @Documented
-  @Retention(RetentionPolicy.RUNTIME)
-  @Target(ElementType.METHOD)
-  @interface Source {
-    String[] value();
-  }
 }
