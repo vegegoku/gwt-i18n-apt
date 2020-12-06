@@ -361,7 +361,7 @@ public class LocalizableProcessingStep implements BasicAnnotationProcessor.Proce
     String key = method.getKey();
     String property = method.getPropertyValue(locale, key, localeResourceMap);
 
-    if (isFloat(context, returnType)) {
+    if (context.isFloat(returnType)) {
       return CodeBlock.builder().addStatement("return $Lf", property).build();
     }
 
@@ -369,11 +369,6 @@ public class LocalizableProcessingStep implements BasicAnnotationProcessor.Proce
       return CodeBlock.builder().addStatement("return $S", property).build();
     }
     return CodeBlock.builder().addStatement("return $L", property).build();
-  }
-
-  private boolean isFloat(AptContext context, TypeMirror returnType) {
-    return (context.isPrimitive(returnType) && "float".equals(returnType.toString()))
-        || context.isAssignableFrom(returnType, Float.class);
   }
 
   private Properties getPropertiesResource(Element element, String locale) {

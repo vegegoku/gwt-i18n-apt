@@ -149,8 +149,7 @@ public class AptContext {
    * @return return true if the typeMirror is a float/Float type
    */
   public boolean isFloat(TypeMirror typeMirror) {
-    return (isPrimitive(typeMirror) && "float".equals(typeMirror.toString()))
-        || isSameType(typeMirror, Float.class);
+    return "float".equals(typeMirror.toString()) || isSameType(typeMirror, Float.class);
   }
 
   /**
@@ -158,8 +157,7 @@ public class AptContext {
    * @return return true if the typeMirror is a int/Integer type
    */
   public boolean isInteger(TypeMirror typeMirror) {
-    return (isPrimitive(typeMirror) && "int".equals(typeMirror.toString()))
-        || isSameType(typeMirror, Integer.class);
+    return "int".equals(typeMirror.toString()) || isSameType(typeMirror, Integer.class);
   }
 
   /**
@@ -167,8 +165,7 @@ public class AptContext {
    * @return return true if the typeMirror is a double/Double type
    */
   public boolean isDouble(TypeMirror typeMirror) {
-    return (isPrimitive(typeMirror) && "double".equals(typeMirror.toString()))
-        || isSameType(typeMirror, Double.class);
+    return "double".equals(typeMirror.toString()) || isSameType(typeMirror, Double.class);
   }
 
   /**
@@ -176,8 +173,7 @@ public class AptContext {
    * @return return true if the typeMirror is a boolean/Boolean type
    */
   public boolean isBoolean(TypeMirror typeMirror) {
-    return (isPrimitive(typeMirror) && "boolean".equals(typeMirror.toString()))
-        || isSameType(typeMirror, Boolean.class);
+    return "boolean".equals(typeMirror.toString()) || isSameType(typeMirror, Boolean.class);
   }
 
   /**

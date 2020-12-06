@@ -61,7 +61,7 @@ public class ExceptionUtil {
     e.printStackTrace(new PrintWriter(out));
     messager.printMessage(
         Diagnostic.Kind.ERROR,
-        "error while creating source file " + out.getBuffer().toString(),
+        e.getMessage() + ":" + out.getBuffer().toString(),
         element,
         annotationMirror);
   }

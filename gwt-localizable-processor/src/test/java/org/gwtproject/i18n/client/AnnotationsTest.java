@@ -22,7 +22,7 @@ import org.gwtproject.i18n.shared.Localizable;
 import org.junit.Before;
 import org.junit.Test;
 
-// ** Tests annotations not covered elsewhere. */
+/** Tests annotations not covered elsewhere. */
 public class AnnotationsTest {
 
   /** First grandparent for test. */

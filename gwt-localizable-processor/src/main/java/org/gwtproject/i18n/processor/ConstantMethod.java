@@ -21,7 +21,6 @@ import static java.util.Objects.nonNull;
 import java.lang.annotation.Annotation;
 import java.util.*;
 import javax.lang.model.element.ExecutableElement;
-import javax.tools.Diagnostic;
 import org.gwtproject.i18n.client.Constants;
 import org.gwtproject.i18n.client.LocalizableResource;
 
@@ -130,14 +129,9 @@ public class ConstantMethod {
 
   @Override
   public boolean equals(Object o) {
-    try {
-      ConstantMethod other = (ConstantMethod) o;
-      return method.getSimpleName().toString().equals(other.method.getSimpleName().toString())
-          && context.isSameType(method.getReturnType(), other.method.getReturnType());
-    } catch (Exception e) {
-      context.messager.printMessage(Diagnostic.Kind.NOTE, this.toString() + " : " + o.toString());
-      return false;
-    }
+    ConstantMethod other = (ConstantMethod) o;
+    return method.getSimpleName().toString().equals(other.method.getSimpleName().toString())
+        && context.isSameType(method.getReturnType(), other.method.getReturnType());
   }
 
   @Override
@@ -147,6 +141,9 @@ public class ConstantMethod {
 
   @Override
   public int hashCode() {
-    return Objects.hash(method);
+    int result = 1;
+    result = 31 * result + method.getSimpleName().toString().hashCode();
+    result = 31 * result + method.getReturnType().toString().hashCode();
+    return result;
   }
 }
