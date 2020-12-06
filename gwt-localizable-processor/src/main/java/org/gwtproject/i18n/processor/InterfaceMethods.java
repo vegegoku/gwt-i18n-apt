@@ -35,9 +35,6 @@ public class InterfaceMethods {
   }
 
   public void add(ConstantMethod constantMethod) {
-    if (constantMethod.getMethod().getSimpleName().toString().equals("shared")) {
-      System.out.println("hello");
-    }
     if (!methods.contains(constantMethod)) {
       methods.add(constantMethod);
     } else {

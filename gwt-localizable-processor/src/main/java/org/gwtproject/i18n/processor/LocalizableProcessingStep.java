@@ -28,6 +28,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+import javax.annotation.Generated;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
@@ -40,6 +41,8 @@ import org.gwtproject.i18n.client.ConstantsWithLookup;
 import org.gwtproject.i18n.shared.Localizable;
 
 public class LocalizableProcessingStep implements BasicAnnotationProcessor.ProcessingStep {
+  public static final ParameterizedTypeName MAP_TYPE =
+      ParameterizedTypeName.get(Map.class, String.class, String.class);
   private final ProcessingEnvironment processingEnv;
 
   public LocalizableProcessingStep(ProcessingEnvironment processingEnv) {
@@ -89,7 +92,8 @@ public class LocalizableProcessingStep implements BasicAnnotationProcessor.Proce
                   }
 
                 } catch (Exception e) {
-                  context.messager.printMessage(Diagnostic.Kind.ERROR, "failed to find resource");
+                  context.messager.printMessage(
+                      Diagnostic.Kind.ERROR, "failed to find resource", element);
                 }
               }
             });
@@ -111,7 +115,7 @@ public class LocalizableProcessingStep implements BasicAnnotationProcessor.Proce
   private void generateFactoryClass(
       Element element, AptContext context, Map<String, Properties> localeResourceMap) {
     String enclosingElementName =
-        !(ElementKind.PACKAGE == element.getEnclosingElement().getKind())
+        ElementKind.PACKAGE != element.getEnclosingElement().getKind()
             ? element.getEnclosingElement().getSimpleName().toString() + "_"
             : "";
     String factoryClassName =
@@ -132,7 +136,7 @@ public class LocalizableProcessingStep implements BasicAnnotationProcessor.Proce
         .forEach(
             locale -> {
               createMethodBuilder
-                  .beginControlFlow("if($S.equals(System.getProperty($S)))", locale, "locale")
+                  .beginControlFlow("if(System.getProperty($S).startsWith($S))", "locale", locale)
                   .addStatement(
                       "return new $T()",
                       ClassName.bestGuess(
@@ -178,6 +182,10 @@ public class LocalizableProcessingStep implements BasicAnnotationProcessor.Proce
         (locale, resource) -> {
           TypeSpec.Builder constantImplBuilder =
               TypeSpec.classBuilder(getConstantClassName(element, locale))
+                  .addAnnotation(
+                      AnnotationSpec.builder(Generated.class)
+                          .addMember("value", "$S", LocalizableProcessor.class.getCanonicalName())
+                          .build())
                   .addModifiers(Modifier.PUBLIC)
                   .addSuperinterface(ClassName.get(element.asType()));
 
@@ -195,7 +203,10 @@ public class LocalizableProcessingStep implements BasicAnnotationProcessor.Proce
                     }
 
                     if (context.isMap(constantMethod.getMethod().getReturnType())) {
-                      addCacheField(constantImplBuilder, cacheAdded);
+                      if (!cacheAdded[0]) {
+                        addCacheField(constantImplBuilder);
+                        cacheAdded[0] = true;
+                      }
                       Optional<CodeBlock> methodBody =
                           getMapMethodBody(constantMethod, locale, localeResourceMap);
                       methodBody.ifPresent(
@@ -215,7 +226,10 @@ public class LocalizableProcessingStep implements BasicAnnotationProcessor.Proce
                         && context.isString(
                             context.arrayComponentType(
                                 constantMethod.getMethod().getReturnType()))) {
-                      addCacheField(constantImplBuilder, cacheAdded);
+                      if (!cacheAdded[0]) {
+                        addCacheField(constantImplBuilder);
+                        cacheAdded[0] = true;
+                      }
                       Optional<CodeBlock> methodBody =
                           getArrayMethodBody(constantMethod, locale, localeResourceMap);
                       methodBody.ifPresent(
@@ -267,14 +281,9 @@ public class LocalizableProcessingStep implements BasicAnnotationProcessor.Proce
     return "default".equals(locale) ? "" : locale;
   }
 
-  private void addCacheField(TypeSpec.Builder constantImplBuilder, boolean[] cacheAdded) {
-    if (!cacheAdded[0]) {
-      constantImplBuilder.addField(
-          FieldSpec.builder(ClassName.get(Map.class), "cache")
-              .initializer("new $T()", HashMap.class)
-              .build());
-      cacheAdded[0] = true;
-    }
+  private void addCacheField(TypeSpec.Builder constantImplBuilder) {
+    constantImplBuilder.addField(
+        FieldSpec.builder(Map.class, "cache").initializer("new $T()", HashMap.class).build());
   }
 
   private Optional<CodeBlock> getMapMethodBody(
@@ -284,28 +293,22 @@ public class LocalizableProcessingStep implements BasicAnnotationProcessor.Proce
     String key = method.getKey();
     String[] property = method.getArrayPropertyValue(locale, key, localeResourceMap);
     if (nonNull(property)) {
-      builder.addStatement(
-          "$T args = ($T)cache.get($S)",
-          ParameterizedTypeName.get(Map.class, String.class, String.class),
-          ParameterizedTypeName.get(Map.class, String.class, String.class),
-          key);
+      builder.addStatement("$T args = ($T)cache.get($S)", MAP_TYPE, MAP_TYPE, key);
       builder
           .beginControlFlow("if(args == null)")
           .addStatement(
               "args = new $T()",
               ParameterizedTypeName.get(LinkedHashMap.class, String.class, String.class));
 
-      if (property.length > 0) {
-        Arrays.asList(property)
-            .stream()
-            .map(String::trim)
-            .collect(Collectors.toSet())
-            .forEach(
-                valueKey -> {
-                  String valueProperty = localeResourceMap.get(locale).getProperty(valueKey);
-                  builder.addStatement("args.put($S, $S)", valueKey, valueProperty);
-                });
-      }
+      Arrays.asList(property)
+          .stream()
+          .map(String::trim)
+          .distinct()
+          .forEach(
+              valueKey -> {
+                String valueProperty = localeResourceMap.get(locale).getProperty(valueKey);
+                builder.addStatement("args.put($S, $S)", valueKey, valueProperty);
+              });
 
       builder.addStatement("args = $T.unmodifiableMap(args)", Collections.class);
       builder.addStatement("cache.put($S, args)", key);
