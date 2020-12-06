@@ -528,6 +528,11 @@ public class NumberFormat_en_Test extends GWTTestCase {
     assertEquals("0", str);
   }
 
+  public void testDoubleDoubleInt() {
+    NumberFormat formatter = NumberFormat.getFormat("#,###");
+    formatter.format(100);
+  }
+
   private void assertAllZeros(String str, int prefixLen) {
     if (prefixLen > str.length()) {
       prefixLen = str.length();

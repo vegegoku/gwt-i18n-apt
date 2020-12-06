@@ -11,7 +11,7 @@
 
     <name>GWT i18n Parent</name>
     <description></description>
-    <url>https://github.com/gwtproject/gwt-editor</url>
+    <url>https://github.com/vegegoku/gwt-i18n-apt</url>
     <inceptionYear>2018</inceptionYear>
     <organization>
         <name>The GWT Authors</name>
@@ -34,9 +34,9 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/gwtproject/gwt-editors.git</connection>
-        <developerConnection>scm:git:ssh://github.com/gwtproject/gwt-editors.git</developerConnection>
-        <url>https://github.com/gwtproject/gwt-editors/tree/master</url>
+        <connection>scm:git:git://github.com/vegegoku/gwt-i18n-apt.git</connection>
+        <developerConnection>scm:git:ssh://github.com/vegegoku/gwt-i18n-apt.git</developerConnection>
+        <url>https://github.com/vegegoku/gwt-i18n-apt/tree/master</url>
     </scm>
 
     <properties>

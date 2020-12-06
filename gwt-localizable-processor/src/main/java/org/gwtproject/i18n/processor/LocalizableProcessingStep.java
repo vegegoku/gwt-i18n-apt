@@ -15,23 +15,34 @@
  */
 package org.gwtproject.i18n.processor;
 
+import static java.util.Objects.nonNull;
+import static java.util.stream.Collectors.toList;
+
 import com.google.auto.common.BasicAnnotationProcessor;
-import com.google.auto.common.MoreElements;
 import com.google.common.collect.SetMultimap;
 import com.squareup.javapoet.*;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.annotation.Annotation;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+import javax.annotation.Generated;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
+import javax.tools.Diagnostic;
+import org.gwtproject.i18n.client.Constants;
+import org.gwtproject.i18n.client.ConstantsWithLookup;
 import org.gwtproject.i18n.shared.Localizable;
 
 public class LocalizableProcessingStep implements BasicAnnotationProcessor.ProcessingStep {
+  public static final ParameterizedTypeName MAP_TYPE =
+      ParameterizedTypeName.get(Map.class, String.class, String.class);
   private final ProcessingEnvironment processingEnv;
 
   public LocalizableProcessingStep(ProcessingEnvironment processingEnv) {
@@ -47,105 +58,373 @@ public class LocalizableProcessingStep implements BasicAnnotationProcessor.Proce
   public Set<Element> process(
       SetMultimap<Class<? extends Annotation>, Element> elementsByAnnotation) {
 
+    AptContext context = new AptContext(processingEnv);
+
     for (Element element : elementsByAnnotation.get(Localizable.IsLocalizable.class)) {
-      // build a model
-      String packageName =
-          processingEnv.getElementUtils().getPackageOf(element).getQualifiedName().toString();
+      try {
+        String packageName = context.elements.getPackageOf(element).getQualifiedName().toString();
 
-      // collect the possible locales
-      // TODO correctly sort this based on the logic ahmad has worked up
+        List<String> locales = getLocaleNames(element);
+        Map<String, ClassName> keyToNameMapping = new HashMap<>();
 
-      List<String> locales = getLocaleNames(element);
-      // TODO remove hack which restricts us to default
-      locales = Collections.singletonList("default");
+        Map<String, Properties> localeResourceMap = new HashMap<>();
 
-      // implement the interface into a new type for each locale key
-      Map<String, ClassName> keyToNameMapping = new HashMap<>();
+        locales.forEach(
+            locale -> {
+              keyToNameMapping.put(
+                  locale,
+                  ClassName.get(
+                      packageName,
+                      element.getSimpleName().toString() + "_" + (localePostfix(locale))));
 
-      keyToNameMapping.put(
-          "default", ClassName.get(packageName, element.getSimpleName().toString() + "_default"));
+              Properties resource = getPropertiesResource(element, localePostfix(locale));
+              loadPropertiesByLocale(resource, context, element, localePostfix(locale));
+              if (nonNull(resource)) {
+                localeResourceMap.put(locale, resource);
+              }
+              if (!"default".equals(locale)) {
 
-      TypeSpec.Builder defaultImplBuilder =
-          TypeSpec.classBuilder(element.getSimpleName().toString() + "_default")
-              .addModifiers(Modifier.PUBLIC)
-              .addSuperinterface(ClassName.get(element.asType()));
-
-      MoreElements.getLocalAndInheritedMethods(
-              (TypeElement) element, processingEnv.getTypeUtils(), processingEnv.getElementUtils())
-          .stream()
-          //                    .filter(method -> !method.getModifiers().contains(Modifier.STATIC))
-          .filter(method -> !method.getModifiers().contains(Modifier.DEFAULT))
-
-          // skip anything on Object
-          .filter(
-              method ->
-                  !Object.class
-                      .getName()
-                      .equals(ClassName.get(method.getEnclosingElement().asType()).toString()))
-          .forEach(
-              method -> {
-                MethodSpec.Builder impl =
-                    MethodSpec.methodBuilder(method.getSimpleName().toString())
-                        .addModifiers(Modifier.PUBLIC)
-                        .returns(TypeName.get(method.getReturnType()))
-                        .addAnnotation(Override.class);
-                for (VariableElement parameter : method.getParameters()) {
-                  impl.addParameter(
-                      TypeName.get(parameter.asType()), parameter.getSimpleName().toString());
-                }
-                // TODO support other return types, return correct values, etc
-                if (method.getReturnType().getKind().isPrimitive()) {
-                  if (method.getReturnType().getKind() == TypeKind.BOOLEAN) {
-                    impl.addStatement("return false");
-                  } else {
-                    impl.addStatement("return ($T)0", TypeName.get(method.getReturnType()));
+                try {
+                  Properties propertiesResource = getPropertiesResource(element, locale);
+                  loadPropertiesByLocale(propertiesResource, context, element, locale);
+                  if (!propertiesResource.isEmpty()) {
+                    localeResourceMap.put(locale, propertiesResource);
                   }
-                } else {
 
-                  impl.addStatement("return $S", method.getSimpleName().toString());
+                } catch (Exception e) {
+                  context.messager.printMessage(
+                      Diagnostic.Kind.ERROR, "failed to find resource", element);
                 }
+              }
+            });
 
-                defaultImplBuilder.addMethod(impl.build());
-              });
+        if (context.isAssignableFrom(element, Constants.class)
+            || context.isAssignableFrom(element, ConstantsWithLookup.class)) {
+          generateConstantsClasses(element, context, localeResourceMap);
+          generateFactoryClass(element, context, localeResourceMap);
+        }
 
-      try {
-        JavaFile.builder(packageName, defaultImplBuilder.build())
-            .build()
-            .writeTo(processingEnv.getFiler());
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-
-      // for each method that needs overriding, generate a method which
-      // either reads from the default annotation or just returns the
-      // method name itself, ignoring all args
-
-      // based on the types created and their locale,
-      // create a factor
-      TypeSpec factory =
-          TypeSpec.classBuilder(element.getSimpleName() + "_Factory")
-              .addMethod(
-                  MethodSpec.methodBuilder("create")
-                      .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                      .returns(ClassName.get(element.asType()))
-                      .addStatement("return create(System.getProperty(\"locale\", \"default\"))")
-                      .build())
-              .addMethod(
-                  MethodSpec.methodBuilder("create")
-                      .addParameter(String.class, "locale")
-                      .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                      .returns(ClassName.get(element.asType()))
-                      .addCode(makeSwitchCase(locales, keyToNameMapping))
-                      .build())
-              .build();
-      try {
-        JavaFile.builder(packageName, factory).build().writeTo(processingEnv.getFiler());
-      } catch (IOException e) {
-        e.printStackTrace();
+      } catch (Exception e) {
+        ExceptionUtil.messageStackTrace(context.messager, e, element);
       }
     }
 
     return Collections.emptySet();
+  }
+
+  private void generateFactoryClass(
+      Element element, AptContext context, Map<String, Properties> localeResourceMap) {
+    String enclosingElementName =
+        ElementKind.PACKAGE != element.getEnclosingElement().getKind()
+            ? element.getEnclosingElement().getSimpleName().toString() + "_"
+            : "";
+    String factoryClassName =
+        enclosingElementName + element.getSimpleName().toString() + "_Factory";
+
+    TypeSpec.Builder builder =
+        TypeSpec.classBuilder(factoryClassName).addModifiers(Modifier.PUBLIC);
+
+    MethodSpec.Builder createMethodBuilder =
+        MethodSpec.methodBuilder("create")
+            .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+            .returns(TypeName.get(element.asType()));
+
+    localeResourceMap
+        .keySet()
+        .stream()
+        .sorted(Comparator.reverseOrder())
+        .forEach(
+            locale -> {
+              createMethodBuilder
+                  .beginControlFlow("if(System.getProperty($S).startsWith($S))", "locale", locale)
+                  .addStatement(
+                      "return new $T()",
+                      ClassName.bestGuess(
+                          context.elements.getPackageOf(element).getQualifiedName().toString()
+                              + "."
+                              + getConstantClassName(element, localePostfix(locale))))
+                  .endControlFlow();
+            });
+
+    createMethodBuilder.addStatement("return null");
+    builder.addMethod(createMethodBuilder.build());
+
+    writeSource(builder, context, element);
+  }
+
+  public Properties loadPropertiesByLocale(
+      Properties properties, AptContext context, Element element, String locale) {
+    TypeElement typeElement = (TypeElement) element;
+    List<? extends TypeMirror> interfaces = typeElement.getInterfaces();
+
+    if (!interfaces.isEmpty()) {
+      interfaces
+          .stream()
+          .map(context.types::asElement)
+          .forEach(
+              extendedInterface -> {
+                Properties propertiesResource = getPropertiesResource(extendedInterface, locale);
+                if (nonNull(propertiesResource)) {
+                  propertiesResource.forEach(properties::putIfAbsent);
+                }
+
+                loadPropertiesByLocale(properties, context, extendedInterface, locale);
+              });
+    }
+
+    return properties;
+  }
+
+  private void generateConstantsClasses(
+      Element element, AptContext context, Map<String, Properties> localeResourceMap) {
+
+    localeResourceMap.forEach(
+        (locale, resource) -> {
+          TypeSpec.Builder constantImplBuilder =
+              TypeSpec.classBuilder(getConstantClassName(element, locale))
+                  .addAnnotation(
+                      AnnotationSpec.builder(Generated.class)
+                          .addMember("value", "$S", LocalizableProcessor.class.getCanonicalName())
+                          .build())
+                  .addModifiers(Modifier.PUBLIC)
+                  .addSuperinterface(ClassName.get(element.asType()));
+
+          final boolean[] cacheAdded = new boolean[] {false};
+
+          LookupMethodsBuilder lookupMethodsBuilder = new LookupMethodsBuilder(context);
+          InterfaceMethods interfaceMethods = new InterfaceMethods();
+          getConstantsMethods(interfaceMethods, context, element)
+              .getMethods()
+              .stream()
+              .forEach(
+                  constantMethod -> {
+                    if (context.isAssignableFrom(element, ConstantsWithLookup.class)) {
+                      lookupMethodsBuilder.addMethod(constantMethod.getMethod());
+                    }
+
+                    if (context.isMap(constantMethod.getMethod().getReturnType())) {
+                      if (!cacheAdded[0]) {
+                        addCacheField(constantImplBuilder);
+                        cacheAdded[0] = true;
+                      }
+                      Optional<CodeBlock> methodBody =
+                          getMapMethodBody(constantMethod, locale, localeResourceMap);
+                      methodBody.ifPresent(
+                          codeBlock -> {
+                            constantImplBuilder.addMethod(
+                                MethodSpec.methodBuilder(
+                                        constantMethod.getMethod().getSimpleName().toString())
+                                    .addModifiers(Modifier.PUBLIC)
+                                    .addAnnotation(Override.class)
+                                    .returns(
+                                        TypeName.get(constantMethod.getMethod().getReturnType()))
+                                    .addCode(codeBlock)
+                                    .build());
+                          });
+
+                    } else if (context.isArray(constantMethod.getMethod().getReturnType())
+                        && context.isString(
+                            context.arrayComponentType(
+                                constantMethod.getMethod().getReturnType()))) {
+                      if (!cacheAdded[0]) {
+                        addCacheField(constantImplBuilder);
+                        cacheAdded[0] = true;
+                      }
+                      Optional<CodeBlock> methodBody =
+                          getArrayMethodBody(constantMethod, locale, localeResourceMap);
+                      methodBody.ifPresent(
+                          codeBlock -> {
+                            constantImplBuilder.addMethod(
+                                MethodSpec.methodBuilder(
+                                        constantMethod.getMethod().getSimpleName().toString())
+                                    .addModifiers(Modifier.PUBLIC)
+                                    .addAnnotation(Override.class)
+                                    .returns(
+                                        TypeName.get(constantMethod.getMethod().getReturnType()))
+                                    .addCode(codeBlock)
+                                    .build());
+                          });
+
+                    } else {
+                      constantImplBuilder.addMethod(
+                          MethodSpec.methodBuilder(
+                                  constantMethod.getMethod().getSimpleName().toString())
+                              .addModifiers(Modifier.PUBLIC)
+                              .addAnnotation(Override.class)
+                              .returns(TypeName.get(constantMethod.getMethod().getReturnType()))
+                              .addCode(
+                                  getValueExpression(
+                                      context, constantMethod, locale, localeResourceMap))
+                              .build());
+                    }
+                  });
+
+          if (context.isAssignableFrom(element, ConstantsWithLookup.class)) {
+            lookupMethodsBuilder
+                .lookupMethods()
+                .forEach(methodBuilder -> constantImplBuilder.addMethod(methodBuilder.build()));
+          }
+
+          writeSource(constantImplBuilder, context, element);
+        });
+  }
+
+  private String getConstantClassName(Element element, String locale) {
+    String enclosingElementName =
+        !(ElementKind.PACKAGE == element.getEnclosingElement().getKind())
+            ? element.getEnclosingElement().getSimpleName().toString() + "_"
+            : "";
+    return enclosingElementName + element.getSimpleName().toString() + "_" + localePostfix(locale);
+  }
+
+  private String localePostfix(String locale) {
+    return "default".equals(locale) ? "" : locale;
+  }
+
+  private void addCacheField(TypeSpec.Builder constantImplBuilder) {
+    constantImplBuilder.addField(
+        FieldSpec.builder(Map.class, "cache").initializer("new $T()", HashMap.class).build());
+  }
+
+  private Optional<CodeBlock> getMapMethodBody(
+      ConstantMethod method, String locale, Map<String, Properties> localeResourceMap) {
+    CodeBlock.Builder builder = CodeBlock.builder();
+
+    String key = method.getKey();
+    String[] property = method.getArrayPropertyValue(locale, key, localeResourceMap);
+    if (nonNull(property)) {
+      builder.addStatement("$T args = ($T)cache.get($S)", MAP_TYPE, MAP_TYPE, key);
+      builder
+          .beginControlFlow("if(args == null)")
+          .addStatement(
+              "args = new $T()",
+              ParameterizedTypeName.get(LinkedHashMap.class, String.class, String.class));
+
+      Arrays.asList(property)
+          .stream()
+          .map(String::trim)
+          .distinct()
+          .forEach(
+              valueKey -> {
+                String valueProperty = localeResourceMap.get(locale).getProperty(valueKey);
+                builder.addStatement("args.put($S, $S)", valueKey, valueProperty);
+              });
+
+      builder.addStatement("args = $T.unmodifiableMap(args)", Collections.class);
+      builder.addStatement("cache.put($S, args)", key);
+      builder.endControlFlow();
+      builder.addStatement("return args");
+
+      return Optional.of(builder.build());
+    } else {
+      return Optional.empty();
+    }
+  }
+
+  private Optional<CodeBlock> getArrayMethodBody(
+      ConstantMethod method, String locale, Map<String, Properties> localeResourceMap) {
+    CodeBlock.Builder builder = CodeBlock.builder();
+
+    String key = method.getKey();
+    String[] property = method.getArrayPropertyValue(locale, key, localeResourceMap);
+    if (nonNull(property)) {
+      builder.addStatement("$T[] args = ($T[])cache.get($S)", String.class, String.class, key);
+      builder.beginControlFlow("if(args == null)").beginControlFlow("$T[] writer=", String.class);
+
+      if (property.length > 0) {
+        Arrays.asList(property)
+            .stream()
+            .forEach(
+                arrayValue -> {
+                  builder.add("$S,\n", arrayValue.trim().replace("\\,", ","));
+                });
+      } else {
+        builder.add("$S,\n", "");
+      }
+      builder.endControlFlow("");
+
+      builder.addStatement("cache.put($S, writer)", key);
+      builder.addStatement("return writer");
+      builder.endControlFlow();
+      builder.addStatement("return args");
+
+      return Optional.of(builder.build());
+    } else {
+      return Optional.empty();
+    }
+  }
+
+  private CodeBlock getValueExpression(
+      AptContext context,
+      ConstantMethod method,
+      String locale,
+      Map<String, Properties> localeResourceMap) {
+
+    TypeMirror returnType = method.getMethod().getReturnType();
+    String key = method.getKey();
+    String property = method.getPropertyValue(locale, key, localeResourceMap);
+
+    if (context.isFloat(returnType)) {
+      return CodeBlock.builder().addStatement("return $Lf", property).build();
+    }
+
+    if (context.isString(returnType)) {
+      return CodeBlock.builder().addStatement("return $S", property).build();
+    }
+    return CodeBlock.builder().addStatement("return $L", property).build();
+  }
+
+  private Properties getPropertiesResource(Element element, String locale) {
+
+    String pkg =
+        processingEnv.getElementUtils().getPackageOf(element).getQualifiedName().toString();
+    String relativeName =
+        element.getSimpleName().toString()
+            + ((locale.isEmpty()) ? "" : "_")
+            + locale
+            + ".properties";
+    try {
+      ResourceOracleImpl resourceOracle = new ResourceOracleImpl(new AptContext(processingEnv));
+      URL resource = resourceOracle.findResource(pkg, relativeName);
+      Properties properties = new Properties();
+      if (nonNull(resource)) {
+        properties.load(new InputStreamReader(resource.openStream(), StandardCharsets.UTF_8));
+      }
+
+      return properties;
+    } catch (Exception e) {
+      processingEnv
+          .getMessager()
+          .printMessage(
+              Diagnostic.Kind.ERROR,
+              "failed to find resource " + relativeName + " in package " + pkg);
+      return null;
+    }
+  }
+
+  private void writeSource(TypeSpec.Builder builder, AptContext context, Element element) {
+    writeSource(
+        Arrays.asList(builder),
+        context,
+        context.elements.getPackageOf(element).getQualifiedName().toString(),
+        element);
+  }
+
+  protected void writeSource(JavaFile sourceFile, AptContext context, Element element) {
+    try {
+      sourceFile.writeTo(context.filer);
+    } catch (IOException e) {
+      ExceptionUtil.messageStackTrace(context.messager, e, element);
+    }
+  }
+
+  protected void writeSource(
+      List<TypeSpec.Builder> builders, AptContext context, String rootPackage, Element element) {
+    builders.forEach(
+        builder -> {
+          JavaFile javaFile = JavaFile.builder(rootPackage, builder.build()).build();
+          writeSource(javaFile, context, element);
+        });
   }
 
   private List<String> getLocaleNames(Element element) {
@@ -155,8 +434,8 @@ public class LocalizableProcessingStep implements BasicAnnotationProcessor.Proce
     typesToCheck.add(element);
     for (int i = 0; i < typesToCheck.size(); i++) {
       Element check = typesToCheck.get(i);
-      Localizable.I18nLocaleSuffuxes annotation =
-          check.getAnnotation(Localizable.I18nLocaleSuffuxes.class);
+      Localizable.I18nLocaleSuffixes annotation =
+          check.getAnnotation(Localizable.I18nLocaleSuffixes.class);
       if (annotation != null) {
         return Arrays.asList(annotation.value());
       }
@@ -170,14 +449,44 @@ public class LocalizableProcessingStep implements BasicAnnotationProcessor.Proce
     return Collections.emptyList();
   }
 
-  private CodeBlock makeSwitchCase(List<String> locales, Map<String, ClassName> keyToNameMapping) {
-    CodeBlock.Builder switchCase = CodeBlock.builder().beginControlFlow("switch (locale)");
-    for (String locale : locales) {
-      switchCase
-          .beginControlFlow("case $S:", locale)
-          .addStatement("return new $T()", keyToNameMapping.get(locale))
-          .endControlFlow();
+  public InterfaceMethods getConstantsMethods(
+      InterfaceMethods interfaceMethods, AptContext context, Element constantsInterfaceElement) {
+    TypeElement elementType = (TypeElement) constantsInterfaceElement;
+
+    if (elementType.getInterfaces().isEmpty()) {
+      getMethods(interfaceMethods, context, constantsInterfaceElement);
+      return interfaceMethods;
     }
-    return switchCase.endControlFlow().addStatement("return null").build();
+
+    getMethods(interfaceMethods, context, constantsInterfaceElement);
+    ((TypeElement) constantsInterfaceElement)
+        .getInterfaces()
+        .forEach(
+            superInterface -> {
+              getConstantsMethods(
+                      interfaceMethods, context, context.types.asElement(superInterface))
+                  .getMethods()
+                  .forEach(
+                      constantMethod -> {
+                        if (nonNull(constantMethod)
+                            && !interfaceMethods.getMethods().contains(constantMethod)) {
+                          interfaceMethods.add(constantMethod);
+                        }
+                      });
+            });
+
+    return interfaceMethods;
+  }
+
+  private void getMethods(
+      InterfaceMethods interfaceMethods, AptContext context, Element constantsInterfaceElement) {
+    List<ConstantMethod> result =
+        AptContext.getElementMethods(constantsInterfaceElement)
+            .stream()
+            .filter(executableElement -> executableElement.getParameters().isEmpty())
+            .map(executableElement -> new ConstantMethod(executableElement, context))
+            .collect(toList());
+
+    interfaceMethods.addAll(result);
   }
 }
